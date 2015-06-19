@@ -10,6 +10,8 @@
     </Sites>
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
+      <Setting name="ServiceBusConnectionString" />
+      <Setting name="QueueName" />
     </ConfigurationSettings>
     <Endpoints>
       <InputEndpoint name="Endpoint1" protocol="http" port="80" />
@@ -18,6 +20,8 @@
   <WorkerRole name="WorkerRole1" vmsize="Small">
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
+      <Setting name="ServiceBusConnectionString" />
+      <Setting name="QueueName" />
     </ConfigurationSettings>
   </WorkerRole>
 </ServiceDefinition>

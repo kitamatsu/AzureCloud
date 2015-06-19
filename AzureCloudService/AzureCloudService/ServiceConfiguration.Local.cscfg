@@ -4,12 +4,16 @@
     <Instances count="1" />
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="UseDevelopmentStorage=true" />
+      <Setting name="ServiceBusConnectionString" value="Endpoint=sb://notificationbas.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=du41aFGjHMQTu3Vjn+TOHzHNfyvYFTCbn63BJ8kmRVs=" />
+      <Setting name="QueueName" value="notificationqueue" />
     </ConfigurationSettings>
   </Role>
   <Role name="WorkerRole1">
     <Instances count="1" />
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="UseDevelopmentStorage=true" />
+      <Setting name="ServiceBusConnectionString" value="Endpoint=sb://notificationbas.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=du41aFGjHMQTu3Vjn+TOHzHNfyvYFTCbn63BJ8kmRVs=" />
+      <Setting name="QueueName" value="notificationqueue" />
     </ConfigurationSettings>
   </Role>
 </ServiceConfiguration>

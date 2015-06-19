@@ -9,53 +9,73 @@ using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Diagnostics;
 using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Storage;
+using Microsoft.ServiceBus.Messaging;
 
 namespace WorkerRole1
 {
     public class WorkerRole : RoleEntryPoint
     {
-        private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
+        private ManualResetEvent completedEvent = new ManualResetEvent(false);
+        private QueueClient client;
 
         public override void Run()
         {
-            Trace.TraceInformation("WorkerRole1 is running");
+            var options = new OnMessageOptions();
+            options.AutoComplete = true;        // 自分でCompleteを呼ばない
+            options.MaxConcurrentCalls = 10;    // 同時に処理するメッセージ数
+            options.ExceptionReceived += options_ExceptionReceived;
 
-            try
+            this.client.OnMessageAsync(
+                 async (msg) =>
+                 {
+                     // 繰り返し処理しても完了できなかったら、メッセージを削除
+                     if (msg.DeliveryCount > 10)
+                     {
+                         await msg.DeadLetterAsync();
+                         Trace.TraceWarning("Maximum Message Count Exceeded: {0} for MessageID: {1} ", 10, msg.MessageId);
+                         return;
+                     }
+
+                     // メッセージを受信して、何かしらの処理を実行
+                     await Task.Delay(TimeSpan.FromSeconds(2));
+                     Trace.TraceInformation("Recived Message ID : {0} Body : {1}", msg.MessageId, msg.GetBody<string>());
+                 },
+                 options);
+
+            this.completedEvent.WaitOne();
+
+        }
+
+        void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
+        {
+            var exceptionMessage = "null";
+            if (e != null && e.Exception != null)
             {
-                this.RunAsync(this.cancellationTokenSource.Token).Wait();
-            }
-            finally
-            {
-                this.runCompleteEvent.Set();
+                exceptionMessage = e.Exception.Message;
+                Trace.TraceError("Exception in QueueClient.ExceptionReceived: {0}", exceptionMessage);
             }
         }
+
 
         public override bool OnStart()
         {
             // 同時接続の最大数を設定します
             ServicePointManager.DefaultConnectionLimit = 12;
 
-            // 構成の変更を処理する方法については、
-            // MSDN トピック (http://go.microsoft.com/fwlink/?LinkId=166357) を参照してください。
+            var connectionString = CloudConfigurationManager.GetSetting("ServiceBusConnectionString");
+            var queueName = CloudConfigurationManager.GetSetting("QueueName");
+            this.client = QueueClient.CreateFromConnectionString(connectionString, queueName);
 
-            bool result = base.OnStart();
+            return base.OnStart();
 
-            Trace.TraceInformation("WorkerRole1 has been started");
-
-            return result;
         }
 
         public override void OnStop()
         {
-            Trace.TraceInformation("WorkerRole1 is stopping");
-
-            this.cancellationTokenSource.Cancel();
-            this.runCompleteEvent.WaitOne();
-
+            this.client.Close();
+            this.completedEvent.Set();
             base.OnStop();
 
-            Trace.TraceInformation("WorkerRole1 has stopped");
         }
 
         private async Task RunAsync(CancellationToken cancellationToken)
